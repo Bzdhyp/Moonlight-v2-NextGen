@@ -6,7 +6,7 @@ import wtf.moonlight.module.Subcategory;
 import wtf.moonlight.value.impl.NumberValue;
 
 public final class Hotkeys extends Module {
-    private final Anchor anchor = new Anchor(this, 12, 52);
+    private final Anchor anchor = new Anchor(this, 0, 12, 52);
     private final NumberValue scale = add(new NumberValue("Scale", 0.5, 3, 0.05, 1.5, "%.2f"));
 
     public Hotkeys() {

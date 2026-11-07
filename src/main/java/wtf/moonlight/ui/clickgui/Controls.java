@@ -172,18 +172,17 @@ public final class Controls {
         if (r == 75 && g == 126 && b == 255) return Colors.reAlpha(theme.iconHighlight, a);
         if (r == 17 && g == 19 && b == 27) return theme.modulePanelBg;
         if (r == 20 && g == 20 && b == 29) return theme.fade(theme.isDark() ? raw : Colors.rgba(236, 236, 236, 245));
-        if (theme.isDark()) return raw;
-        if (r == 133 && g == 144 && b == 156) return Colors.rgb(255, 255, 255);
+        if (r == 57 && g == 61 && b == 76) return theme.fade(theme.isDark() ? raw : Colors.rgba(200, 200, 200, 205));
+        if (r == 133 && g == 144 && b == 156) return theme.switchKnob;
         if (r == 139 && g == 143 && b == 154) return theme.secondary;
-        if (r == 31 && g == 34 && b == 44) return theme.windowBorder;
+        if (r == 31 && g == 34 && b == 44) return theme.cardBorder;
         if (r == 29 && g == 33 && b == 43) return theme.switchDisabledBg;
-        if (r == 89 && g == 94 && b == 106) return theme.secondary;
+        if (r == 89 && g == 94 && b == 106) return theme.caption;
         if (r == 25 && g == 28 && b == 38) return theme.selectorBg;
         if (r == 31 && g == 38 && b == 54) return theme.buttonHoveredBg;
-        if (r == 32 && g == 35 && b == 46) return theme.split;
+        if (r == 32 && g == 35 && b == 46) return theme.selectorBorder;
         if (r == 170 && g == 173 && b == 184) return theme.main;
         if (r == 34 && g == 38 && b == 48) return theme.sliderBg;
-        if (r == 57 && g == 61 && b == 76) return Colors.rgba(200, 200, 200, 205);
         return raw;
     }
 }

@@ -2,7 +2,6 @@ package wtf.moonlight.ui.clickgui;
 
 import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.ImGuiStorage;
 import imgui.ImGuiViewport;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiStyleVar;
@@ -11,8 +10,10 @@ import org.jspecify.annotations.Nullable;
 import wtf.moonlight.module.Category;
 import wtf.moonlight.module.Module;
 import wtf.moonlight.module.Subcategory;
+import wtf.moonlight.module.impl.render.Esp;
 import wtf.moonlight.ui.clickgui.element.Palette;
 import wtf.moonlight.ui.clickgui.element.SliderElement;
+import wtf.moonlight.ui.imgui.Natives;
 import wtf.moonlight.ui.imgui.Textures;
 import wtf.moonlight.value.Value;
 import wtf.moonlight.value.impl.ColorValue;
@@ -25,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
 
 import static wtf.moonlight.ui.clickgui.Widgets.scale;
@@ -34,6 +34,8 @@ final class PageLayout {
     static final int CLIENT_PAGE = -1;
 
     private static final int SUB_PAGE = 100;
+    private static final int ENTITIES = SUB_PAGE + Subcategory.ENTITIES.ordinal();
+    private static final float CARD_SLIDE = 24;
     private static final float NAV_ROW = 36;
     private static final float NAV_MAX = 290;
     private static final float SUB_INDENT = 16;
@@ -50,12 +52,23 @@ final class PageLayout {
     private final Set<Category> expanded = EnumSet.noneOf(Category.class);
     private final List<Group> groups = new ArrayList<>();
     private final Map<NumberValue, SliderElement> sliders = new HashMap<>();
+    private final Scroller scroller = new Scroller();
     private List<Module> shown = List.of();
+    private @Nullable EspPane pane;
     private boolean builtClient;
     private int page;
 
     PageLayout(Panel panel) {
         this.panel = panel;
+    }
+
+    private EspPane pane() {
+        EspPane current = pane;
+        if (current == null) {
+            current = new EspPane(panel, panel.modules().getModule(Esp.class));
+            pane = current;
+        }
+        return current;
     }
 
     int page() {
@@ -67,14 +80,22 @@ final class PageLayout {
         if (this.page == page) return;
         this.page = page;
         panel.pageChanged();
-        panel.setSearch("");
-        panel.setSearching(false);
+    }
+
+    void reveal(Module module) {
+        Subcategory sub = module.getSubcategory();
+        if (sub == null) {
+            changePage(module.getCategory().ordinal());
+            return;
+        }
+        expanded.add(sub.getCategory());
+        changePage(SUB_PAGE + sub.ordinal());
     }
 
     void navigation(float originX, float originY) {
         Theme theme = panel.colors();
         ImDrawList draw = ImGui.getWindowDrawList();
-        Widgets.label(draw, originX + scale(16), originY + scale(67), theme.secondary, "MODULES", 10);
+        Widgets.label(draw, originX + scale(16), originY + scale(67), theme.navLabel, "MODULES", 10);
         Category[] categories = Category.values();
         float[] open = new float[categories.length];
         float content = 0;
@@ -93,8 +114,8 @@ final class PageLayout {
             Windows.endChild();
             ImGui.popStyleVar();
         }
-        Widgets.label(draw, originX + scale(16), originY + scale(97 + navHeight), theme.secondary, "CLIENT", 10);
-        if (nav(theme, originX + scale(7), originY + scale(111 + navHeight), scale(140), -1, SETTINGS_ICON, "Settings", page == CLIENT_PAGE, true)) {
+        Widgets.label(draw, originX + scale(16), originY + scale(97 + navHeight), theme.navLabel, "CLIENT", 10);
+        if (nav(theme, originX + scale(7), originY + scale(111 + navHeight), scale(140), -1, SETTINGS_ICON, "Settings", page == CLIENT_PAGE)) {
             changePage(CLIENT_PAGE);
         }
     }
@@ -105,13 +126,13 @@ final class PageLayout {
             List<Subcategory> subs = subcategories(category);
             int id = category.ordinal();
             if (subs.isEmpty()) {
-                if (nav(theme, originX + scale(7), originY + scale(y), scale(140), id, icon(category), category.getName(), page == id, true)) changePage(id);
+                if (nav(theme, originX + scale(7), originY + scale(y), scale(140), id, icon(category), category.getName(), page == id)) changePage(id);
                 y += NAV_ROW;
                 continue;
             }
             Subcategory current = page >= SUB_PAGE ? Subcategory.values()[page - SUB_PAGE] : null;
             boolean inside = current != null && current.getCategory() == category;
-            if (nav(theme, originX + scale(7), originY + scale(y), scale(140), id, icon(category), category.getName(), inside, false)) {
+            if (nav(theme, originX + scale(7), originY + scale(y), scale(140), id, icon(category), category.getName(), inside)) {
                 if (!expanded.remove(category)) {
                     expanded.add(category);
                     if (!inside) changePage(SUB_PAGE + subs.getFirst().ordinal());
@@ -125,7 +146,7 @@ final class PageLayout {
                 Subcategory sub = subs.get(i);
                 int target = SUB_PAGE + sub.ordinal();
                 if (nav(theme, originX + scale(7 + SUB_INDENT), originY + scale(y + NAV_ROW * i), scale(140 - SUB_INDENT), target,
-                        icon(sub), sub.getName(), page == target, true)) {
+                        icon(sub), sub.getName(), page == target)) {
                     changePage(target);
                 }
             }
@@ -143,24 +164,29 @@ final class PageLayout {
         if (groups.isEmpty()) {
             Widgets.label(ImGui.getWindowDrawList(), originX + scale(180), originY + scale(88), theme.secondary, "No matching modules", 14);
         }
-        int columns = builtClient ? 1 : 2;
-        for (int column = 0; column < columns; column++) {
-            ImGui.pushID(column);
-            ImGui.setCursorScreenPos(originX + scale(167 + 290 * column), originY + scale(64));
-            Windows.beginChild("module-column", scale(builtClient ? 568 : 278), scale(497), ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoScrollbar);
-            int key = ImGui.getID("##list-generation");
-            int generation = Objects.hash(panel.getSearch(), page);
-            ImGuiStorage storage = ImGui.getStateStorage();
-            if (storage.getInt(key) != generation) {
-                ImGui.setScrollY(0);
-                storage.setInt(key, generation);
-            }
+        EspPane preview = page == ENTITIES && !builtClient ? pane() : null;
+        float wide = preview != null ? preview.wide() : 0;
+        ImGui.setCursorScreenPos(originX + scale(167), originY + scale(64));
+        Windows.beginChild("module-list", scale(preview != null ? EspPane.LIST_WIDTH : 568), scale(497),
+                ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | (wide > 0 ? ImGuiWindowFlags.NoInputs : 0));
+        if (wide == 0) scroller.update(page);
+        float left = ImGui.getCursorScreenPosX();
+        float[] tops = {ImGui.getCursorScreenPosY(), ImGui.getCursorScreenPosY()};
+        float width = scale(builtClient ? 568 : preview != null ? EspPane.CARD_WIDTH : 278);
+        if (wide < 1) {
+            ImGui.beginDisabled(wide > 0);
             for (Group group : groups) {
-                if (group.column == column) card(theme, group, ImGui.getWindowWidth());
+                ImGui.setCursorScreenPos(left + scale(290 * group.column), tops[group.column]);
+                card(theme, group.name, group.name.toUpperCase(Locale.ROOT), group.rows, width);
+                tops[group.column] = ImGui.getCursorScreenPosY();
             }
-            Windows.endChild();
-            ImGui.popID();
+            ImGui.endDisabled();
         }
+        if (wide > 0) {
+            for (long list : Windows.subtree()) Natives.transform(list, 0, 0, 1, -scale(CARD_SLIDE) * wide, 0, 1 - wide);
+        }
+        Windows.endChild();
+        if (preview != null) preview.render(theme, originX, originY);
         ImGui.popStyleVar();
         Controls.pageReveal(panel.pageReveal());
         Windows.endChild();
@@ -318,18 +344,15 @@ final class PageLayout {
         Textures.face(draw, panel.skin(), x, y, radius, Colors.rgb(255, 255, 255));
     }
 
-    private boolean nav(Theme theme, float x, float y, float width, int id, String icon, String name, boolean active, boolean fill) {
+    private boolean nav(Theme theme, float x, float y, float width, int id, String icon, String name, boolean active) {
         ImDrawList draw = ImGui.getWindowDrawList();
         ImGui.pushID(id);
         ImGui.setCursorScreenPos(x, y);
         boolean clicked = ImGui.invisibleButton("nav", width, scale(30));
         boolean hovered = ImGui.isItemHovered();
         float response = Widgets.motion(ImGui.getItemID() ^ 0x7771, active ? 1 : hovered ? .48f : 0, 16);
-        float surface = fill ? response : Widgets.motion(ImGui.getItemID() ^ 0x7773, hovered ? .48f : 0, 16);
         ImGui.popID();
-        draw.addRectFilled(x, y, x + width, y + scale(30),
-                Colors.interpolate(Colors.reAlpha(theme.categoryPanelBg, 0), theme.categoryHighlight, surface), scale(6));
-        int iconColor = Colors.interpolate(theme.navIcon, fill ? theme.iconHighlight : theme.textHighlight, response);
+        int iconColor = Colors.interpolate(theme.navIcon, theme.textHighlight, response);
         Widgets.pushIcon();
         draw.addText(x + scale(10), y + (scale(30) - Widgets.textHeight()) * .5f, iconColor, icon);
         Widgets.popFont();
@@ -350,7 +373,7 @@ final class PageLayout {
     }
 
     private void rebuild() {
-        boolean client = page == CLIENT_PAGE && panel.getSearch().isEmpty();
+        boolean client = page == CLIENT_PAGE;
         List<Module> modules = client ? List.of() : choices();
         if (modules.equals(shown) && client == builtClient && !groups.isEmpty()) return;
         shown = modules;
@@ -366,7 +389,7 @@ final class PageLayout {
         List<String> names = new ArrayList<>();
         List<List<Row>> cards = new ArrayList<>();
         for (Module module : shown) {
-            if (module.getValues().stream().filter(Value::isVisible).count() < EXPAND) {
+            if (module.getValues().stream().filter(Value::isVisible).count() < EXPAND && !(module instanceof Esp)) {
                 toggles.add(Row.of(panel, module));
                 continue;
             }
@@ -382,7 +405,7 @@ final class PageLayout {
         }
         float[] heights = new float[2];
         for (int i = 0; i < cards.size(); i++) {
-            int column = heights[0] <= heights[1] ? 0 : 1;
+            int column = page == ENTITIES || heights[0] <= heights[1] ? 0 : 1;
             Group group = new Group(names.get(i), column);
             group.rows.addAll(cards.get(i));
             groups.add(group);
@@ -391,31 +414,28 @@ final class PageLayout {
     }
 
     private List<Module> choices() {
-        String search = panel.getSearch().toLowerCase(Locale.ROOT);
         List<Module> out = new ArrayList<>();
         for (Module module : panel.modules().getModules()) {
-            if (!search.isEmpty()) {
-                if (module.getName().toLowerCase(Locale.ROOT).contains(search)) out.add(module);
-            } else if (page >= SUB_PAGE ? module.getSubcategory() == Subcategory.values()[page - SUB_PAGE] : module.getCategory().ordinal() == page) {
+            if (page >= SUB_PAGE ? module.getSubcategory() == Subcategory.values()[page - SUB_PAGE] : module.getCategory().ordinal() == page) {
                 out.add(module);
             }
         }
         return out;
     }
 
-    private void card(Theme theme, Group group, float width) {
+    static void card(Theme theme, String id, String title, List<Row> rows, float width) {
         ImDrawList draw = ImGui.getWindowDrawList();
-        long count = group.rows.stream().filter(Row::isVisible).count();
+        long count = rows.stream().filter(Row::isVisible).count();
         if (count == 0) return;
         float x = ImGui.getCursorScreenPosX();
         float y = ImGui.getCursorScreenPosY() + scale(CARD_TITLE);
         float height = scale(count * 37.0F);
-        Controls.card(draw, x, y, width, height, group.name.toUpperCase(Locale.ROOT));
-        ImGui.pushID(group.name);
+        Controls.card(draw, x, y, width, height, title);
+        ImGui.pushID(id);
         ImGui.setCursorScreenPos(x + scale(13), y);
         Windows.beginChild("card", width - scale(19), height, ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
         int drawn = 0;
-        for (Row row : group.rows) {
+        for (Row row : rows) {
             if (!row.isVisible()) continue;
             if (drawn > 0) {
                 float lineX = ImGui.getCursorScreenPosX();
@@ -445,6 +465,7 @@ final class PageLayout {
         return switch (sub) {
             case OVERLAY -> Character.toString(0xF5FD);
             case WORLD -> Character.toString(0xF1B2);
+            case ENTITIES -> Character.toString(0xF1DE);
         };
     }
 

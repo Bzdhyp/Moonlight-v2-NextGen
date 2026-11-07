@@ -10,8 +10,8 @@ public final class Anchor {
     private final NumberValue x;
     private final NumberValue y;
 
-    public Anchor(Module module, double x, double y) {
-        position = module.add(new ModeValue("Position", 0, "Top Left", "Top Right", "Bottom Left", "Bottom Right"));
+    public Anchor(Module module, int corner, double x, double y) {
+        position = module.add(new ModeValue("Position", corner, "Top Left", "Top Right", "Bottom Left", "Bottom Right"));
         this.x = module.add(new NumberValue("X", 0, 10000, 0.1, x, "%.1f", () -> false));
         this.y = module.add(new NumberValue("Y", 0, 10000, 0.1, y, "%.1f", () -> false));
         position.onSelect(index -> {

@@ -54,7 +54,7 @@ public final class ToggleCommand extends Command {
             ChatUtils.error("Unknown module: {}", name);
             return 0;
         }
-        module.setEnabled(!module.isEnabled());
+        module.switchTo(!module.isEnabled());
         Component state = module.isEnabled()
                 ? Component.literal("enabled").withStyle(ChatFormatting.GREEN)
                 : Component.literal("disabled").withStyle(ChatFormatting.RED);

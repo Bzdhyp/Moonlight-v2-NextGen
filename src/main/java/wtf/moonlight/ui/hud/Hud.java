@@ -102,7 +102,7 @@ public final class Hud {
 
         ImDrawList draw = ImGui.getBackgroundDrawList();
         boolean light = settings.isLight();
-        Style style = new Style(settings.hudScale(), light, settings.accent(), settings.hudOpacity());
+        Style style = new Style(settings.hudScale(), light, settings.accent(), settings.hudOpacity(), editing);
         for (HudElement element : elements) {
             element.frame(style);
             Rect bounds = element.bounds();

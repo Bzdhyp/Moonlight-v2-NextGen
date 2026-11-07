@@ -8,6 +8,8 @@ import wtf.moonlight.module.impl.player.Scaffold;
 import wtf.moonlight.module.impl.render.ClickGui;
 import wtf.moonlight.module.impl.render.FullBright;
 import wtf.moonlight.module.impl.render.Hotkeys;
+import wtf.moonlight.module.impl.render.Esp;
+import wtf.moonlight.module.impl.render.Notifications;
 import wtf.moonlight.module.impl.render.PostProcess;
 import wtf.moonlight.module.impl.render.Watermark;
 
@@ -26,6 +28,8 @@ public final class ModuleManager {
                 new PostProcess(),
                 new Watermark(),
                 new Hotkeys(),
+                new Notifications(),
+                new Esp(),
                 new ClickGui()
         );
         for (Module module : modules) {

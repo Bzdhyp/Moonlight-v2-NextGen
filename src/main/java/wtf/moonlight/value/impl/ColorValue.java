@@ -6,12 +6,17 @@ import org.jspecify.annotations.Nullable;
 import wtf.moonlight.value.Value;
 
 import java.util.Locale;
+import java.util.function.BooleanSupplier;
 
 public final class ColorValue extends Value<Integer> {
     private final int initial;
 
     public ColorValue(String name, int value) {
-        super(name, value, () -> true);
+        this(name, value, () -> true);
+    }
+
+    public ColorValue(String name, int value, BooleanSupplier visibility) {
+        super(name, value, visibility);
         initial = value;
     }
 

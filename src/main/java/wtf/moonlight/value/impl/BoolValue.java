@@ -4,9 +4,15 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import wtf.moonlight.value.Value;
 
+import java.util.function.BooleanSupplier;
+
 public final class BoolValue extends Value<Boolean> {
     public BoolValue(String name, boolean value) {
-        super(name, value, () -> true);
+        this(name, value, () -> true);
+    }
+
+    public BoolValue(String name, boolean value, BooleanSupplier visibility) {
+        super(name, value, visibility);
     }
 
     @Override

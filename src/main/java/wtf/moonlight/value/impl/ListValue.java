@@ -7,14 +7,17 @@ import org.jspecify.annotations.Nullable;
 import wtf.moonlight.value.Value;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 public final class ListValue extends Value<Set<String>> {
     private final Map<String, String> icons;
+    private final Map<String, List<BoolValue>> extras = new HashMap<>();
     private final boolean sortable;
     private List<String> order;
 
@@ -26,7 +29,11 @@ public final class ListValue extends Value<Set<String>> {
     }
 
     public ListValue(String name, List<String> options, List<String> selected) {
-        super(name, Set.copyOf(selected), () -> true);
+        this(name, options, selected, () -> true);
+    }
+
+    public ListValue(String name, List<String> options, List<String> selected, BooleanSupplier visibility) {
+        super(name, Set.copyOf(selected), visibility);
         icons = Map.of();
         order = List.copyOf(options);
         sortable = false;
@@ -42,6 +49,15 @@ public final class ListValue extends Value<Set<String>> {
 
     public @Nullable String icon(String option) {
         return icons.get(option);
+    }
+
+    public ListValue extra(String option, BoolValue... values) {
+        extras.put(option, List.of(values));
+        return this;
+    }
+
+    public List<BoolValue> extras(String option) {
+        return extras.getOrDefault(option, List.of());
     }
 
     public boolean has(String option) {
@@ -72,6 +88,15 @@ public final class ListValue extends Value<Set<String>> {
         JsonObject json = new JsonObject();
         json.add("order", options);
         json.add("selected", selected);
+        if (!extras.isEmpty()) {
+            JsonObject extra = new JsonObject();
+            extras.forEach((option, values) -> {
+                JsonObject states = new JsonObject();
+                for (BoolValue state : values) states.add(state.getName(), state.save());
+                extra.add(option, states);
+            });
+            json.add("extras", extra);
+        }
         return json;
     }
 
@@ -89,6 +114,15 @@ public final class ListValue extends Value<Set<String>> {
                     if (!next.contains(option)) next.add(option);
                 }
                 order = List.copyOf(next);
+            }
+            if (object.get("extras") instanceof JsonObject extra) {
+                extras.forEach((option, values) -> {
+                    if (!(extra.get(option) instanceof JsonObject states)) return;
+                    for (BoolValue state : values) {
+                        JsonElement saved = states.get(state.getName());
+                        if (saved != null) state.load(saved);
+                    }
+                });
             }
         }
         if (selected instanceof JsonArray array) set(Set.copyOf(names(array).stream().filter(order::contains).toList()));

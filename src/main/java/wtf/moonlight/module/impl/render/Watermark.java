@@ -3,6 +3,7 @@ package wtf.moonlight.module.impl.render;
 import wtf.moonlight.module.Anchor;
 import wtf.moonlight.module.Module;
 import wtf.moonlight.module.Subcategory;
+import wtf.moonlight.value.impl.BoolValue;
 import wtf.moonlight.value.impl.ListValue;
 import wtf.moonlight.value.impl.NumberValue;
 import wtf.moonlight.value.impl.TextValue;
@@ -14,9 +15,11 @@ import java.util.SequencedMap;
 
 public final class Watermark extends Module {
     private final TextValue title = add(new TextValue("Title", "ML", () -> true));
+    private final BoolValue low = new BoolValue("Low", false);
+    private final BoolValue onePercent = new BoolValue("1% Low", true);
     private final ListValue items = add(new ListValue("Items", options(),
-            List.of(Item.LOGO.label, Item.FPS.label, Item.USER.label, Item.TIME.label, Item.AVATAR.label)));
-    private final Anchor anchor = new Anchor(this, 12, 12);
+            List.of(Item.LOGO.label, Item.FPS.label, Item.USER.label, Item.TIME.label, Item.AVATAR.label)).extra(Item.FPS.label, low, onePercent));
+    private final Anchor anchor = new Anchor(this, 0, 12, 12);
     private final NumberValue scale = add(new NumberValue("Scale", 0.5, 3, 0.05, 1.5, "%.2f"));
     private final NumberValue animation = add(new NumberValue("Animation", 100, 1000, 50, 300, "%.0f ms"));
 
@@ -36,6 +39,14 @@ public final class Watermark extends Module {
             }
         }
         return shown;
+    }
+
+    public boolean low() {
+        return low.get();
+    }
+
+    public boolean onePercent() {
+        return onePercent.get();
     }
 
     public Anchor anchor() {

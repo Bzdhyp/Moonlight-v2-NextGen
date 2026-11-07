@@ -10,7 +10,6 @@ public final class Theme {
     public int clientName;
     public int windowBg;
     public int windowBorder;
-    public int categoryPanelBg;
     public int main;
     public int secondary;
     public int textHighlight;
@@ -19,6 +18,7 @@ public final class Theme {
     public int modulePanelBg;
     public int split;
     public int switchDisabledBg;
+    public int switchKnob;
     public int buttonBg;
     public int buttonHoveredBg;
     public int buttonActiveBg;
@@ -32,6 +32,13 @@ public final class Theme {
     public int scrollbarThumbActive;
     public int navText;
     public int navIcon;
+    public int navLabel;
+    public int caption;
+    public int cardBorder;
+    public int selectorBorder;
+    public int contentBg;
+    public int contentBorder;
+    public int barLine;
     public float opacity = 1;
 
     private Theme() {
@@ -49,8 +56,9 @@ public final class Theme {
         Theme t = light ? light() : dark();
         t.opacity = opacity;
         t.windowBg = t.fade(t.windowBg);
-        t.categoryPanelBg = t.fade(t.categoryPanelBg);
         t.modulePanelBg = t.fade(t.modulePanelBg);
+        t.contentBg = t.fade(t.contentBg);
+        t.contentBorder = t.fade(t.contentBorder);
         t.iconHighlight = accent;
         t.selectorElementHover = Colors.reAlpha(accent, 25);
         t.selectorElementActive = Colors.reAlpha(accent, 40);
@@ -61,53 +69,67 @@ public final class Theme {
     private static Theme dark() {
         Theme t = new Theme();
         t.clientIconBg = rgb(8, 27, 48);
-        t.clientName = rgb(228, 230, 236);
-        t.windowBg = rgba(13, 15, 22, 222);
-        t.windowBorder = rgb(30, 33, 43);
-        t.categoryPanelBg = rgba(18, 21, 30, 231);
-        t.main = rgb(207, 209, 218);
-        t.secondary = rgb(91, 96, 108);
-        t.textHighlight = rgb(224, 229, 243);
-        t.categoryHighlight = rgb(39, 43, 54);
-        t.modulePanelBg = rgba(17, 19, 27, 224);
-        t.split = rgb(28, 31, 40);
-        t.switchDisabledBg = rgb(29, 33, 43);
+        t.clientName = rgb(226, 229, 237);
+        t.windowBg = rgba(13, 15, 22, 204);
+        t.windowBorder = rgba(30, 33, 43, 0);
+        t.main = rgb(216, 219, 228);
+        t.secondary = rgb(150, 154, 166);
+        t.textHighlight = rgb(226, 229, 237);
+        t.categoryHighlight = rgba(44, 52, 72, 0);
+        t.modulePanelBg = rgba(13, 14, 21, 163);
+        t.split = rgb(25, 25, 33);
+        t.switchDisabledBg = rgb(25, 25, 33);
+        t.switchKnob = rgb(150, 154, 166);
         t.buttonBg = rgb(25, 28, 38);
         t.buttonHoveredBg = rgb(31, 38, 54);
         t.buttonActiveBg = rgb(39, 43, 54);
-        t.sliderBg = rgb(34, 38, 48);
-        t.selectorBg = rgb(25, 28, 38);
+        t.sliderBg = rgb(35, 37, 46);
+        t.selectorBg = rgb(25, 25, 33);
         t.scrollbarTrack = 0;
         t.scrollbarThumb = rgb(62, 70, 81);
         t.scrollbarThumbHover = rgb(98, 108, 121);
-        t.navText = rgb(145, 149, 159);
-        t.navIcon = rgb(137, 142, 153);
+        t.navText = rgb(150, 154, 166);
+        t.navIcon = rgb(150, 154, 166);
+        t.navLabel = rgb(108, 112, 126);
+        t.caption = rgb(105, 109, 123);
+        t.cardBorder = rgb(28, 31, 41);
+        t.selectorBorder = rgb(34, 34, 42);
+        t.contentBg = rgba(13, 15, 22, 117);
+        t.contentBorder = rgb(35, 37, 46);
+        t.barLine = rgb(37, 42, 53);
         return t;
     }
 
     private static Theme light() {
         Theme t = dark();
         t.clientIconBg = rgb(200, 201, 199);
-        t.clientName = rgb(38, 38, 38);
-        t.secondary = rgb(118, 120, 117);
-        t.windowBg = rgba(218, 218, 216, 242);
-        t.windowBorder = rgb(206, 208, 209);
-        t.categoryPanelBg = rgba(182, 184, 180, 242);
-        t.main = rgb(52, 52, 52);
-        t.textHighlight = rgb(38, 39, 36);
-        t.categoryHighlight = rgb(163, 163, 161);
+        t.clientName = rgb(40, 40, 40);
+        t.secondary = rgb(100, 100, 100);
+        t.windowBg = rgba(185, 188, 194, 242);
+        t.windowBorder = rgb(185, 188, 194);
+        t.main = rgb(55, 55, 55);
+        t.textHighlight = rgb(40, 40, 40);
+        t.categoryHighlight = rgba(170, 173, 180, 0);
         t.modulePanelBg = rgba(229, 229, 229, 245);
         t.split = rgb(210, 210, 210);
         t.switchDisabledBg = rgb(210, 210, 210);
+        t.switchKnob = rgb(255, 255, 255);
         t.buttonBg = rgb(210, 210, 210);
         t.selectorBg = rgb(210, 210, 210);
         t.buttonHoveredBg = rgb(198, 198, 198);
         t.buttonActiveBg = rgb(188, 188, 188);
-        t.sliderBg = rgb(200, 200, 200);
+        t.sliderBg = rgb(205, 205, 205);
         t.scrollbarThumb = rgb(170, 170, 170);
         t.scrollbarThumbHover = rgb(140, 140, 140);
-        t.navText = rgb(97, 100, 97);
-        t.navIcon = rgb(99, 100, 96);
+        t.navText = rgb(100, 100, 100);
+        t.navIcon = rgb(100, 100, 100);
+        t.navLabel = rgb(137, 137, 137);
+        t.caption = rgb(140, 140, 140);
+        t.cardBorder = rgb(214, 214, 214);
+        t.selectorBorder = rgb(200, 200, 200);
+        t.contentBg = rgba(220, 221, 223, 245);
+        t.contentBorder = rgb(205, 205, 205);
+        t.barLine = t.split;
         return t;
     }
 }

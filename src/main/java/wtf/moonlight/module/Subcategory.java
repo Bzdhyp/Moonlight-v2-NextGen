@@ -2,7 +2,8 @@ package wtf.moonlight.module;
 
 public enum Subcategory {
     OVERLAY(Category.RENDER, "Overlay"),
-    WORLD(Category.RENDER, "World");
+    WORLD(Category.RENDER, "World"),
+    ENTITIES(Category.RENDER, "Entities");
 
     private final Category category;
     private final String name;

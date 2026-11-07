@@ -27,11 +27,6 @@ final class TopBar {
     private static final float SELECTOR_HEIGHT = 30;
     private static final float SELECTOR_ROUNDING = 6;
     private static final float SEARCH_BUTTON = 28;
-    private static final float SEARCH_FIELD = 150;
-    private static final float SEARCH_GAP = 6;
-    private static final float SEARCH_HEIGHT = 29;
-    private static final float SEARCH_HOVER = .65f;
-    private static final float SEARCH_RESPONSE = 18;
     private static final float SEARCH_ICON_TONE = .75f;
     private static final float POPUP_WIDTH = 268;
     private static final float POPUP_ROW = 32;
@@ -40,24 +35,17 @@ final class TopBar {
     private static final float POPUP_INSET = 8;
     private static final float POPUP_GAP = 6;
     private static final float POPUP_LIST_HEIGHT = 168;
+    private static final float LINE_INSET = 13;
     private static final double STATUS_SECONDS = 3.0;
     private static final int LOGO_MAIN = 0xFFE5D2CF;
     private static final int LOGO_FIRST = 0xFFFF7D66;
     private static final int LOGO_SECOND = 0xFF663329;
     private static final int DANGER = Colors.rgb(0xF0, 0x6A, 0x6A);
     private static final String SAVE_ICON = Character.toString(0xF0C7);
-    private static final String SEARCH_HINT = "search modules";
 
     private final Panel panel;
     private final ImString nameBuffer = new ImString(63);
     private final ImString createBuffer = new ImString(63);
-    private final ImString searchBuffer = new ImString(63);
-    private int searchFrame = -2;
-    private float searchReveal;
-    private float searchHighlight;
-    private float searchFocus;
-    private boolean searchOpen;
-    private boolean focusSearch;
     private int renaming = -1;
     private boolean focusEdit;
     private float barX;
@@ -77,9 +65,7 @@ final class TopBar {
         barCenterY = barY + scale(BAR_HEIGHT) / 2.0F;
         Theme theme = panel.colors();
         ImDrawList draw = ImGui.getWindowDrawList();
-        draw.addRectFilled(barX + scale(158), barY, barX + scale(748), barY + scale(56),
-                theme.fade(theme.isDark() ? Colors.rgba(11, 13, 20, 225) : Colors.rgba(220, 222, 223, 225)), scale(14), ImDrawFlags.RoundCornersTopRight);
-        draw.addLine(barX + scale(158), barY + scale(56), barX + scale(748), barY + scale(56), theme.split, scale(1));
+        draw.addLine(barX + scale(158 + LINE_INSET), barY + scale(56), barX + scale(748 - LINE_INSET), barY + scale(56), theme.barLine, scale(1));
         renderTitle(theme);
         renderSelector(theme);
         renderSearch(theme);
@@ -102,7 +88,6 @@ final class TopBar {
                 ((float) ImGui.getTime() / WORDMARK_CYCLE) % 1.0F, scale(WORDMARK_SHIFT), theme.isDark() ? LOGO_MAIN : theme.clientName);
         draw.popClipRect();
         Widgets.popFont();
-        draw.addLine(barX + scale(10), barY + scale(56), barX + scale(147), barY + scale(56), theme.split, scale(1));
     }
 
     private void renderSelector(Theme theme) {
@@ -128,7 +113,6 @@ final class TopBar {
         boolean openClicked = ImGui.isItemClicked();
 
         ImDrawList draw = ImGui.getWindowDrawList();
-        draw.addRectFilled(minX, minY, maxX, maxY, theme.fade(Colors.reAlpha(theme.modulePanelBg, 255)), scale(SELECTOR_ROUNDING));
         if (saveHovered) draw.addRectFilled(minX, minY, splitX, maxY, theme.buttonHoveredBg, scale(SELECTOR_ROUNDING), ImDrawFlags.RoundCornersLeft);
         if (openHovered) draw.addRectFilled(splitX, minY, maxX, maxY, theme.buttonHoveredBg, scale(SELECTOR_ROUNDING), ImDrawFlags.RoundCornersRight);
         Widgets.pushIcon();
@@ -141,7 +125,8 @@ final class TopBar {
         draw.popClipRect();
         Widgets.popFont();
         Controls.chevron(draw, minX + scale(148), minY + scale(11), theme.secondary);
-        draw.addRect(minX, minY, maxX, maxY, theme.split, scale(SELECTOR_ROUNDING), 0, scale(1));
+        draw.addLine(splitX, minY, splitX, maxY, theme.contentBorder, scale(1));
+        draw.addRect(minX, minY, maxX, maxY, theme.contentBorder, scale(SELECTOR_ROUNDING), 0, scale(1));
         if (openClicked) {
             ImGui.setNextWindowPos(minX, maxY + scale(6), ImGuiCond.Appearing);
             ImGui.openPopup("configpopup");
@@ -366,81 +351,13 @@ final class TopBar {
     }
 
     private void renderSearch(Theme theme) {
-        int frame = ImGui.getFrameCount();
-        float delta = ImGui.getIO().getDeltaTime();
-        boolean open = panel.isSearching();
-        if (searchFrame != frame - 1) {
-            searchReveal = open ? 1 : 0;
-            searchHighlight = open ? 1 : 0;
-            searchFocus = 0;
-            searchOpen = open;
-            focusSearch = open;
-        }
-        searchFrame = frame;
-        if (!panel.getSearch().equals(searchBuffer.get())) searchBuffer.set(panel.getSearch());
-
         float buttonX = barX + scale(705);
         float buttonY = barCenterY - scale(SEARCH_BUTTON) / 2.0F;
         ImGui.setCursorScreenPos(buttonX, buttonY);
-        ImGui.invisibleButton("searchtoggle", scale(SEARCH_BUTTON), scale(SEARCH_BUTTON));
-        boolean hovered = ImGui.isItemHovered();
-        if (ImGui.isItemClicked()) {
-            open = !open;
-            panel.setSearching(open);
-            if (!open) searchBuffer.set("");
-        }
-        if (open != searchOpen) focusSearch = open;
-        searchOpen = open;
-        float target = open ? 1 : 0;
-        float blend = 1.0F - (float) Math.exp(-20.0F * delta);
-        searchReveal = searchReveal + blend * (target - searchReveal);
-        if (Math.abs(searchReveal - target) < .0005f) searchReveal = target;
-        float reveal = Controls.popupEase(searchReveal);
-        searchHighlight = searchHighlight + (1.0F - (float) Math.exp(-16.0F * delta)) * ((open || hovered ? 1 : 0) - searchHighlight);
+        if (ImGui.invisibleButton("searchtoggle", scale(SEARCH_BUTTON), scale(SEARCH_BUTTON))) panel.setSearching(true);
+        float hover = Widgets.motion(ImGui.getItemID() ^ 0x5ea7, ImGui.isItemHovered() || panel.isSearching() ? 1 : 0, 16);
         magnifier(ImGui.getWindowDrawList(), buttonX + scale(SEARCH_BUTTON) / 2.0F, buttonY + scale(SEARCH_BUTTON) / 2.0F, scale(14),
-                Colors.mix(Colors.mix(theme.secondary, theme.main, SEARCH_ICON_TONE), theme.textHighlight, searchHighlight));
-
-        float width = scale(SEARCH_FIELD) * reveal;
-        if (width < scale(1)) {
-            if (!open) searchBuffer.set("");
-            return;
-        }
-        Widgets.pushText(Widgets.TEXT_CONTROL);
-        float height = scale(SEARCH_HEIGHT);
-        float right = buttonX - scale(SEARCH_GAP);
-        float minX = right - width;
-        float minY = barCenterY - height / 2.0F;
-        float maxY = minY + height;
-        float rounding = Math.min(scale(SELECTOR_ROUNDING), width * 0.5f);
-        ImDrawList draw = ImGui.getWindowDrawList();
-        draw.addRectFilled(minX, minY, right, maxY, Colors.mix(theme.fade(Colors.reAlpha(theme.modulePanelBg, 255)), theme.buttonHoveredBg, searchFocus), rounding);
-        ImGui.pushClipRect(minX, minY, right, maxY, true);
-        float paddingY = Math.max(0, (height - Widgets.textHeight()) * .5f);
-        ImGui.setCursorScreenPos(right - scale(SEARCH_FIELD), minY);
-        ImGui.setNextItemWidth(scale(SEARCH_FIELD));
-        ImGui.pushStyleVar(ImGuiStyleVar.FrameRounding, scale(SELECTOR_ROUNDING));
-        ImGui.pushStyleVar(ImGuiStyleVar.FramePadding, scale(8), paddingY);
-        ImGui.pushStyleVar(ImGuiStyleVar.FrameBorderSize, 0);
-        ImGui.pushStyleVar(ImGuiStyleVar.DisabledAlpha, 1);
-        ImGui.pushStyleColor(ImGuiCol.FrameBg, 0);
-        ImGui.pushStyleColor(ImGuiCol.FrameBgHovered, 0);
-        ImGui.pushStyleColor(ImGuiCol.FrameBgActive, 0);
-        ImGui.pushStyleColor(ImGuiCol.Text, theme.main);
-        ImGui.pushStyleColor(ImGuiCol.TextDisabled, theme.secondary);
-        ImGui.pushStyleColor(ImGuiCol.TextSelectedBg, Colors.reAlpha(theme.iconHighlight, Controls.FIELD_SELECTION_ALPHA));
-        ImGui.pushStyleColor(ImGuiCol.NavCursor, 0);
-        ImGui.beginDisabled(!open);
-        if (focusSearch) ImGui.setKeyboardFocusHere();
-        if (ImGui.inputTextWithHint("##search", SEARCH_HINT, searchBuffer) && open) panel.setSearch(searchBuffer.get());
-        float focus = !open ? 0 : ImGui.isItemActive() ? 1 : ImGui.isItemHovered() ? SEARCH_HOVER : 0;
-        if (ImGui.isItemActive()) focusSearch = false;
-        searchFocus += (focus - searchFocus) * (1.0F - (float) Math.exp(-SEARCH_RESPONSE * delta));
-        ImGui.endDisabled();
-        ImGui.popStyleColor(7);
-        ImGui.popStyleVar(4);
-        ImGui.popClipRect();
-        draw.addRect(minX, minY, right, maxY, Colors.mix(theme.split, theme.iconHighlight, searchFocus), rounding, 0, scale(1));
-        Widgets.popFont();
+                Colors.mix(Colors.mix(theme.secondary, theme.main, SEARCH_ICON_TONE), theme.textHighlight, hover));
     }
 
     private static float wordmarkWidth(String text) {

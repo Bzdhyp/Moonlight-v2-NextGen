@@ -3,6 +3,7 @@ package wtf.moonlight.module;
 import org.jspecify.annotations.Nullable;
 import wtf.moonlight.Moonlight;
 import wtf.moonlight.bind.Bind;
+import wtf.moonlight.event.impl.client.ModuleToggleEvent;
 import wtf.moonlight.value.Value;
 
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public abstract class Module {
         this.name = name;
         this.category = category;
         this.subcategory = subcategory;
-        this.bind = new Bind(name, this::setEnabled);
+        this.bind = new Bind(name, this::switchTo);
     }
 
     public String getName() {
@@ -72,6 +73,12 @@ public abstract class Module {
             Moonlight.EVENT_BUS.unregister(this);
             onDisable();
         }
+    }
+
+    public void switchTo(boolean enabled) {
+        if (this.enabled == enabled) return;
+        setEnabled(enabled);
+        if (isPersistent()) Moonlight.EVENT_BUS.post(new ModuleToggleEvent(this, enabled));
     }
 
     public boolean isPersistent() {

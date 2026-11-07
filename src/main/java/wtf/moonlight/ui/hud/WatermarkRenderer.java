@@ -46,7 +46,8 @@ public final class WatermarkRenderer implements HudElement {
     private static final float LOGO_SHIFT = 1.25F;
     private static final float LOGO_DROP = 1.24F;
     private static final String FPS = " FPS";
-    private static final String LOW = "  (1%L)";
+    private static final String LOW = "  (Low)";
+    private static final String ONE_PERCENT = "  (1%L)";
     private static final int WHITE = Colors.rgb(255, 255, 255);
     private static final int BLACK = Colors.rgb(0, 0, 0);
     private static final int INK = Colors.rgb(28, 30, 38);
@@ -63,6 +64,7 @@ public final class WatermarkRenderer implements HudElement {
     private final FrameStats stats = new FrameStats();
     private final Rolling fps = new Rolling();
     private final Rolling low = new Rolling();
+    private final Rolling minimum = new Rolling();
     private final Rolling clock = new Rolling();
     private final Rolling ping = new Rolling();
     private final Rolling tps = new Rolling();
@@ -128,6 +130,7 @@ public final class WatermarkRenderer implements HudElement {
         float k = module.scale() * style.scale() * ImGuiManager.displayScale();
         fps.update(String.valueOf(stats.fps()), delta, fresh);
         low.update(String.valueOf(stats.low()), delta, fresh);
+        minimum.update(String.valueOf(stats.minimum()), delta, fresh);
         clock.update(LocalTime.now().format(CLOCK_FORMAT), delta, fresh);
         info = data.get();
         ping.update(info.ping() >= 0 ? String.valueOf(info.ping()) : "--", delta, fresh);
@@ -212,7 +215,7 @@ public final class WatermarkRenderer implements HudElement {
     private float segment(@Nullable ImDrawList draw, Item item, float left, float top, float x, float k) {
         return switch (item) {
             case LOGO -> logo(draw, left, top, x, k);
-            case FPS -> rolling(draw, left, top, rolling(draw, left, top, icon(draw, left, top, x, k, item, ICON), k, fps, FPS) + STAT_GAP * k, k, low, LOW);
+            case FPS -> frames(draw, left, top, x, k);
             case USER -> label(draw, left, top, icon(draw, left, top, x, k, item, ICON), k, NAME, user.get());
             case SERVER -> label(draw, left, top, icon(draw, left, top, x, k, item, SMALL_ICON), k, TEXT, info.server());
             case PING -> rolling(draw, left, top, icon(draw, left, top, x, k, item, SMALL_ICON), k, ping, " ms");
@@ -239,6 +242,13 @@ public final class WatermarkRenderer implements HudElement {
             text(draw, Fonts.wordmark(), size, left + x + LOGO_SHIFT * k, y, tone(ink), title);
         }
         return x + Fonts.wordmark().calcTextSizeAX(size, Float.MAX_VALUE, 0, title) + LOGO_SHIFT * k;
+    }
+
+    private float frames(@Nullable ImDrawList draw, float left, float top, float x, float k) {
+        x = rolling(draw, left, top, icon(draw, left, top, x, k, Item.FPS, ICON), k, fps, FPS);
+        if (module.low()) x = rolling(draw, left, top, x + STAT_GAP * k, k, minimum, LOW);
+        if (module.onePercent()) x = rolling(draw, left, top, x + STAT_GAP * k, k, low, ONE_PERCENT);
+        return x;
     }
 
     private float label(@Nullable ImDrawList draw, float left, float top, float x, float k, float em, String value) {

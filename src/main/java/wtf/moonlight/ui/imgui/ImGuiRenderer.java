@@ -23,6 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
 import org.jspecify.annotations.Nullable;
@@ -268,6 +269,7 @@ final class ImGuiRenderer {
         }
 
         private void run() {
+            load();
             open();
             try {
                 int globalVertex = 0;
@@ -303,6 +305,20 @@ final class ImGuiRenderer {
                 }
             } finally {
                 close();
+            }
+        }
+
+        private void load() {
+            TextureManager manager = Minecraft.getInstance().getTextureManager();
+            for (int n = 0; n < Natives.listCount(data); n++) {
+                long list = Natives.list(data, n);
+                long command = Natives.commands(list);
+                for (int c = Natives.commandCount(list); c > 0; c--, command += Natives.COMMAND_SIZE) {
+                    long id = Natives.textureId(command);
+                    if (textures.containsKey(id)) continue;
+                    Identifier path = Textures.path(id);
+                    if (path != null) manager.getTexture(path);
+                }
             }
         }
 

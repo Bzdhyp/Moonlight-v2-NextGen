@@ -5,6 +5,7 @@ import com.google.gson.JsonPrimitive;
 import wtf.moonlight.value.Value;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.IntConsumer;
 
 public final class ModeValue extends Value<Integer> {
@@ -13,7 +14,11 @@ public final class ModeValue extends Value<Integer> {
     };
 
     public ModeValue(String name, int value, String... modes) {
-        super(name, value, () -> true);
+        this(name, value, () -> true, modes);
+    }
+
+    public ModeValue(String name, int value, BooleanSupplier visibility, String... modes) {
+        super(name, value, visibility);
         this.modes = List.of(modes);
     }
 

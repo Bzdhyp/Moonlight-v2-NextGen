@@ -107,12 +107,12 @@ final class Row {
         List<Row> children = new ArrayList<>();
         children.add(bindRow(panel, module));
         for (Value<?> value : module.getValues()) children.add(of(panel, value, true));
-        return new Row(panel, module.getName(), new SwitchElement(panel, module::isEnabled, module::setEnabled), children, () -> true,
+        return new Row(panel, module.getName(), new SwitchElement(panel, module::isEnabled, module::switchTo), children, () -> true,
                 module.getBind(), true);
     }
 
     static Row enabled(Panel panel, Module module) {
-        return new Row(panel, "Enabled", new SwitchElement(panel, module::isEnabled, module::setEnabled), List.of(bindRow(panel, module)), () -> true,
+        return new Row(panel, "Enabled", new SwitchElement(panel, module::isEnabled, module::switchTo), List.of(bindRow(panel, module)), () -> true,
                 module.getBind(), false);
     }
 
@@ -126,6 +126,10 @@ final class Row {
 
     void render() {
         render(ROW_HEIGHT);
+    }
+
+    void renderCompact() {
+        render(POPUP_ROW);
     }
 
     private void render(float height) {

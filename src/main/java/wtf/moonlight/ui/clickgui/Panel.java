@@ -4,7 +4,6 @@ import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.ImGuiStyle;
-import imgui.flag.ImDrawFlags;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiMouseButton;
 import imgui.flag.ImGuiStyleVar;
@@ -15,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 import wtf.moonlight.config.ConfigManager;
 import wtf.moonlight.module.Module;
 import wtf.moonlight.module.ModuleManager;
+import wtf.moonlight.ui.esp.Models;
 import wtf.moonlight.ui.imgui.Effects;
 import wtf.moonlight.ui.imgui.Fonts;
 import wtf.moonlight.ui.imgui.ImGuiManager;
@@ -39,15 +39,16 @@ public final class Panel {
     private final Placement placement = new Placement();
     private final TopBar topBar = new TopBar(this);
     private final PageLayout layout = new PageLayout(this);
+    private final Search search = new Search(this, layout);
     private float renderedScale;
     private float appliedScale;
     private int lastFrame = -2;
     private double revealStart;
     private float pageMix = 1;
     private boolean searching;
-    private String search = "";
     private boolean closePopups;
     private @Nullable Row hud;
+    private @Nullable Models models;
     private float hudMinX;
     private float hudMinY;
     private float hudMaxX;
@@ -82,6 +83,14 @@ public final class Panel {
         else popups.drawClosing();
     }
 
+    public void models(Models value) {
+        models = value;
+    }
+
+    @Nullable Models models() {
+        return models;
+    }
+
     public void settings(Module module) {
         hud = Row.of(this, module);
         hudOpening = true;
@@ -97,6 +106,7 @@ public final class Panel {
     void close() {
         capture.cancel();
         closePopups = true;
+        searching = false;
     }
 
     ModuleManager modules() {
@@ -129,15 +139,6 @@ public final class Panel {
 
     void setSearching(boolean value) {
         searching = value;
-        if (!value) search = "";
-    }
-
-    String getSearch() {
-        return search;
-    }
-
-    void setSearch(String value) {
-        search = value;
     }
 
     void pageChanged() {
@@ -196,6 +197,7 @@ public final class Panel {
         if (lastFrame != ImGui.getFrameCount() - 1) {
             revealStart = ImGui.getTime();
             popups.reset();
+            search.reset();
         }
         lastFrame = ImGui.getFrameCount();
         float reveal = Math.clamp((float) ((ImGui.getTime() - revealStart) / .48), 0.0F, 1.0F);
@@ -209,7 +211,8 @@ public final class Panel {
         ImGui.pushStyleVar(ImGuiStyleVar.ScrollbarPadding, scale(3));
         ImGui.pushStyleVar(ImGuiStyleVar.ScrollbarRounding, scale(6));
         ImGui.pushStyleColor(ImGuiCol.WindowBg, theme.windowBg);
-        ImGui.pushStyleColor(ImGuiCol.Border, theme.windowBorder);
+        int border = theme.fade(theme.windowBorder);
+        ImGui.pushStyleColor(ImGuiCol.Border, border);
         ImGui.pushStyleColor(ImGuiCol.ScrollbarBg, theme.scrollbarTrack);
         ImGui.pushStyleColor(ImGuiCol.ScrollbarGrab, theme.scrollbarThumb);
         ImGui.pushStyleColor(ImGuiCol.ScrollbarGrabHovered, theme.scrollbarThumbHover);
@@ -225,22 +228,30 @@ public final class Panel {
             float maxY = y + ImGui.getWindowSizeY();
             ImGui.pushClipRect(x, y, maxX, maxY, false);
             ImGui.pushStyleVar(ImGuiStyleVar.DisabledAlpha, 1);
-            ImGui.beginDisabled(reveal < 1);
+            ImGui.beginDisabled(reveal < 1 || search.visible());
             ImDrawList draw = ImGui.getWindowDrawList();
             draw.pushClipRectFullScreen();
             Effects.blur(draw, x, y, maxX, maxY, scale(ROUNDING), 0);
-            Effects.shadow(draw, x, y, maxX, maxY, scale(ROUNDING), 0, Controls.SHADOW);
+            Effects.shadow(draw, x, y, maxX, maxY, scale(ROUNDING), 0, theme.fade(Controls.SHADOW));
             draw.popClipRect();
             draw.pushClipRect(x - 1, y - 1, maxX + 1, maxY + 1, false);
             Controls.glass(draw, x, y, maxX, maxY, theme.windowBg, scale(ROUNDING));
-            draw.addRect(x, y, maxX, maxY, theme.windowBorder, scale(ROUNDING), 0, scale(1));
+            draw.addRect(x, y, maxX, maxY, border, scale(ROUNDING), 0, scale(1));
             draw.popClipRect();
-            draw.addRectFilled(x, y, x + scale(158), y + scale(576), theme.categoryPanelBg, scale(14), ImDrawFlags.RoundCornersLeft);
-            draw.addLine(x + scale(158), y, x + scale(158), y + scale(576), theme.windowBorder, scale(1));
+            float left = x + scale(158);
+            float round = scale(ROUNDING);
+            float edge = left - scale(.5f);
+            draw.addRectFilled(left, y, maxX, maxY, theme.contentBg, round);
+            draw.pathArcTo(edge + round, y + round, round, (float) Math.PI * 1.5F, (float) Math.PI);
+            draw.pathArcTo(edge + round, maxY - round, round, (float) Math.PI, (float) Math.PI * .5F);
+            draw.pathStroke(theme.contentBorder, 0, scale(1));
             topBar.render();
             layout.navigation(x, y);
             layout.content(x, y);
             layout.account(x, y);
+            ImGui.endDisabled();
+            ImGui.beginDisabled(reveal < 1);
+            search.render(theme, x, y, maxX, maxY, round);
             ImGui.endDisabled();
             ImGui.popStyleVar();
             ImGui.popClipRect();

@@ -13,6 +13,7 @@ final class FrameStats {
     private float elapsed = PERIOD;
     private int fps;
     private int low;
+    private int minimum;
 
     void add(float delta) {
         times[head] = delta;
@@ -40,10 +41,15 @@ final class FrameStats {
         for (int i = n - worst; i < n; i++) slow += sorted[i];
         fps = Math.round(frames / second);
         low = Math.round(worst / slow);
+        minimum = Math.round(1 / Math.max(sorted[n - 1], 1.0E-4F));
     }
 
     int fps() {
         return fps;
+    }
+
+    int minimum() {
+        return minimum;
     }
 
     int low() {

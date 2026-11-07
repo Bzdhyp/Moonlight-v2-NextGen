@@ -10,8 +10,10 @@ import com.mojang.blaze3d.Blaze3D;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import wtf.moonlight.Moonlight;
 import wtf.moonlight.event.Subscribe;
 import wtf.moonlight.event.impl.client.GameLoadedEvent;
+import wtf.moonlight.event.impl.client.NotifyEvent;
 import wtf.moonlight.event.impl.client.TickEvent;
 import wtf.moonlight.module.Module;
 import wtf.moonlight.module.ModuleManager;
@@ -57,13 +59,13 @@ public final class ConfigManager {
     public synchronized boolean save(String name) {
         String json = GSON.toJson(snapshot());
         if (!write(name, json)) {
-            setStatus("Could not write the config file");
+            fail("Could not write the config file");
             return false;
         }
         if (name.equals(LATEST)) lastAutoSave = json;
         current = name;
         refresh();
-        setStatus("Saved " + name);
+        succeed("Saved " + name);
         return true;
     }
 
@@ -74,7 +76,7 @@ public final class ConfigManager {
     public boolean saveAs(String name) {
         String clean = sanitize(name);
         if (clean.isEmpty()) {
-            setStatus("That name cannot be used as a file");
+            fail("That name cannot be used as a file");
             return false;
         }
         return save(clean);
@@ -83,59 +85,59 @@ public final class ConfigManager {
     public boolean load(String name) {
         JsonObject root = read(name);
         if (root == null) {
-            setStatus(configs.contains(name) ? name + " is not a readable config" : "There is no config by that name");
+            fail(configs.contains(name) ? name + " is not a readable config" : "There is no config by that name");
             return false;
         }
         try {
             apply(root);
         } catch (RuntimeException exception) {
             LOGGER.warn("Config {} has invalid values", name, exception);
-            setStatus(name + " is not a readable config");
+            fail(name + " is not a readable config");
             return false;
         }
         current = name;
-        setStatus("Loaded " + name);
+        succeed("Loaded " + name);
         return true;
     }
 
     public boolean rename(String from, String to) {
         String clean = sanitize(to);
         if (!configs.contains(from)) {
-            setStatus("There is no config by that name");
+            fail("There is no config by that name");
             return false;
         }
         if (clean.isEmpty()) {
-            setStatus("That name cannot be used as a file");
+            fail("That name cannot be used as a file");
             return false;
         }
         if (clean.equals(from)) return true;
         if (configs.contains(clean)) {
-            setStatus(clean + " already exists");
+            fail(clean + " already exists");
             return false;
         }
         try {
             Files.move(file(from), file(clean));
         } catch (IOException exception) {
             LOGGER.warn("Could not rename {}", from, exception);
-            setStatus("Could not rename the config file");
+            fail("Could not rename the config file");
             return false;
         }
         refresh();
         if (current.equals(from)) current = clean;
-        setStatus("Renamed to " + clean);
+        succeed("Renamed to " + clean);
         return true;
     }
 
     public boolean delete(String name) {
         if (!configs.contains(name)) {
-            setStatus("There is no config by that name");
+            fail("There is no config by that name");
             return false;
         }
         try {
             Files.deleteIfExists(file(name));
         } catch (IOException exception) {
             LOGGER.warn("Could not delete {}", name, exception);
-            setStatus("Could not delete the config file");
+            fail("Could not delete the config file");
             return false;
         }
         refresh();
@@ -144,13 +146,13 @@ public final class ConfigManager {
             JsonObject next = read(current);
             if (next != null) apply(next);
         }
-        setStatus("Deleted " + name);
+        succeed("Deleted " + name);
         return true;
     }
 
     public boolean duplicate(String name) {
         if (!configs.contains(name)) {
-            setStatus("There is no config by that name");
+            fail("There is no config by that name");
             return false;
         }
         String copy = null;
@@ -159,18 +161,18 @@ public final class ConfigManager {
             if (!configs.contains(candidate)) copy = candidate;
         }
         if (copy == null) {
-            setStatus("Too many copies of " + name);
+            fail("Too many copies of " + name);
             return false;
         }
         try {
             Files.copy(file(name), file(copy));
         } catch (IOException exception) {
             LOGGER.warn("Could not copy {}", name, exception);
-            setStatus("Could not copy the config file");
+            fail("Could not copy the config file");
             return false;
         }
         refresh();
-        setStatus("Duplicated " + name + " as " + copy);
+        succeed("Duplicated " + name + " as " + copy);
         return true;
     }
 
@@ -262,9 +264,18 @@ public final class ConfigManager {
         }
     }
 
-    private void setStatus(String text) {
+    private void succeed(String text) {
+        report(NotifyEvent.Kind.CONFIG, text);
+    }
+
+    private void fail(String text) {
+        report(NotifyEvent.Kind.ERROR, text);
+    }
+
+    private void report(NotifyEvent.Kind kind, String text) {
         status = text;
         statusSerial++;
+        Moonlight.EVENT_BUS.post(new NotifyEvent(kind, text));
     }
 
     private JsonObject snapshot() {

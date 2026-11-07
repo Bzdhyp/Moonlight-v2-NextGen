@@ -31,12 +31,14 @@ import wtf.moonlight.event.impl.input.KeyInputEvent;
 import wtf.moonlight.module.Module;
 import wtf.moonlight.module.ModuleManager;
 import wtf.moonlight.module.impl.render.Hotkeys;
+import wtf.moonlight.module.impl.render.Notifications;
 import wtf.moonlight.module.impl.render.PostProcess;
 import wtf.moonlight.module.impl.render.Watermark;
 import wtf.moonlight.ui.clickgui.ClientSettings;
 import wtf.moonlight.ui.clickgui.Panel;
 import wtf.moonlight.ui.hud.HotkeysRenderer;
 import wtf.moonlight.ui.hud.Hud;
+import wtf.moonlight.ui.hud.NotificationsRenderer;
 import wtf.moonlight.ui.hud.Snapshot;
 import wtf.moonlight.ui.hud.WatermarkRenderer;
 
@@ -117,10 +119,12 @@ public final class Preview {
         PostProcess post = modules.getModule(PostProcess.class);
         Watermark watermark = modules.getModule(Watermark.class);
         Hotkeys hotkeys = modules.getModule(Hotkeys.class);
+        Notifications notifications = modules.getModule(Notifications.class);
         Effects.use(post);
         post.setEnabled(true);
         watermark.setEnabled(true);
         hotkeys.setEnabled(true);
+        notifications.setEnabled(true);
         ClientSettings settings = new ClientSettings();
         ConfigManager configs = new ConfigManager(Path.of("preview", "configs"), modules, settings.getValues());
         EventBus bus = new EventBus();
@@ -129,8 +133,11 @@ public final class Preview {
         Supplier<String> user = () -> USER;
         Supplier<Identifier> skin = () -> SKIN;
         Panel panel = new Panel(modules, configs, settings, capture, user, skin);
+        panel.models(new PreviewModels(SKIN));
         String version = SharedConstants.getCurrentVersion().name();
-        Hud hud = new Hud(List.of(new WatermarkRenderer(watermark, user, skin, () -> snapshot(version)), new HotkeysRenderer(hotkeys, modules)),
+        NotificationsRenderer toasts = new NotificationsRenderer(notifications);
+        Moonlight.EVENT_BUS.register(toasts);
+        Hud hud = new Hud(List.of(new WatermarkRenderer(watermark, user, skin, () -> snapshot(version)), new HotkeysRenderer(hotkeys, modules), toasts),
                 panel, settings, () -> false);
 
         long style = Natives.allocateStyle();

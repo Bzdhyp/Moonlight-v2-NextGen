@@ -70,7 +70,11 @@ public final class Widgets {
     }
 
     public static boolean beginPopup(Theme theme, String id) {
-        return beginPopup(theme, id, 0, Popups.Motion.DROPDOWN, 4, 4);
+        return beginPopup(theme, id, 0);
+    }
+
+    public static boolean beginPopup(Theme theme, String id, int flags) {
+        return beginPopup(theme, id, flags, Popups.Motion.DROPDOWN, 4, 4);
     }
 
     static boolean beginPopup(Theme theme, String id, int flags, Popups.Motion motion, float paddingX, float paddingY) {
@@ -79,7 +83,7 @@ public final class Widgets {
         ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, scale(paddingX), scale(paddingY));
         ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0, 0);
         ImGui.pushStyleColor(ImGuiCol.PopupBg, theme.isDark() ? Colors.rgba(20, 20, 29, 235) : Colors.rgba(236, 236, 236, 245));
-        ImGui.pushStyleColor(ImGuiCol.Border, theme.isDark() ? Colors.rgba(57, 61, 76, 205) : Colors.rgba(200, 200, 200, 205));
+        ImGui.pushStyleColor(ImGuiCol.Border, theme.fade(theme.isDark() ? Colors.rgba(57, 61, 76, 205) : Colors.rgba(200, 200, 200, 205)));
         ImGui.pushStyleColor(ImGuiCol.Text, theme.main);
         boolean result = Windows.beginPopup(id, flags | ImGuiWindowFlags.NoBackground, motion);
         ImGui.popStyleColor(3);
@@ -92,7 +96,7 @@ public final class Widgets {
             float height = ImGui.getWindowSizeY();
             draw.pushClipRectFullScreen();
             Effects.blur(draw, x, y, x + width, y + height, scale(16), 0);
-            Effects.shadow(draw, x, y, x + width, y + height, scale(16), 0, Controls.SHADOW);
+            Effects.shadow(draw, x, y, x + width, y + height, scale(16), 0, theme.fade(Controls.SHADOW));
             Controls.popupBackdrop(draw, x, y, width, height);
             draw.popClipRect();
             if (ImGui.isWindowAppearing()) ImGui.getStateStorage().setFloat(ImGui.getID("##reveal"), 0);

@@ -56,6 +56,10 @@ public final class ClickGuiScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (event.isEscape() && panel.isSearching()) {
+            panel.setSearching(false);
+            return true;
+        }
         if (event.isEscape()) {
             panel.close();
             onClose();

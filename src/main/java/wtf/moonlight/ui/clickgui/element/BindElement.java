@@ -4,9 +4,11 @@ import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import org.jspecify.annotations.Nullable;
+import wtf.moonlight.Moonlight;
 import wtf.moonlight.bind.Bind;
 import wtf.moonlight.bind.BindCapture;
 import wtf.moonlight.bind.Hotkey;
+import wtf.moonlight.event.impl.client.NotifyEvent;
 import wtf.moonlight.module.Module;
 import wtf.moonlight.module.ModuleManager;
 import wtf.moonlight.ui.clickgui.Colors;
@@ -182,8 +184,8 @@ public final class BindElement extends Element {
     }
 
     private void listen(Hotkey hotkey) {
-        capture.begin(hotkey, () -> {
-        }, () -> {
+        capture.begin(hotkey, () -> Moonlight.EVENT_BUS.post(new NotifyEvent(NotifyEvent.Kind.BIND, hotkey.getKey() == KeyUtils.NONE
+                ? bind.getName() + " hotkey cleared" : bind.getName() + " bound to " + KeyUtils.getName(hotkey.getKey()))), () -> {
             if (hotkey.getKey() == KeyUtils.NONE) {
                 bind.remove(hotkey);
                 if (editing == hotkey) editing = null;

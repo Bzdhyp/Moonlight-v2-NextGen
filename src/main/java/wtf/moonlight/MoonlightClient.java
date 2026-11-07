@@ -11,7 +11,9 @@ import wtf.moonlight.command.impl.ConfigCommand;
 import wtf.moonlight.command.impl.ToggleCommand;
 import wtf.moonlight.config.ConfigManager;
 import wtf.moonlight.module.ModuleManager;
+import wtf.moonlight.module.impl.render.Esp;
 import wtf.moonlight.module.impl.render.Hotkeys;
+import wtf.moonlight.module.impl.render.Notifications;
 import wtf.moonlight.module.impl.render.PostProcess;
 import wtf.moonlight.module.impl.render.Watermark;
 import wtf.moonlight.platform.Platform;
@@ -20,7 +22,10 @@ import wtf.moonlight.ui.clickgui.ClickGuiScreen;
 import wtf.moonlight.ui.clickgui.ClientSettings;
 import wtf.moonlight.ui.clickgui.Panel;
 import wtf.moonlight.ui.hud.HotkeysRenderer;
+import wtf.moonlight.ui.esp.EspRenderer;
+import wtf.moonlight.ui.esp.Stage;
 import wtf.moonlight.ui.hud.Hud;
+import wtf.moonlight.ui.hud.NotificationsRenderer;
 import wtf.moonlight.ui.hud.Skin;
 import wtf.moonlight.ui.hud.Tracker;
 import wtf.moonlight.ui.hud.WatermarkRenderer;
@@ -53,9 +58,11 @@ public final class MoonlightClient {
         Skin skin = new Skin();
         Tracker tracker = new Tracker();
         Panel clickGui = new Panel(modules, configs, settings, capture, user, skin);
+        clickGui.models(new Stage());
         panel = clickGui;
+        NotificationsRenderer notifications = new NotificationsRenderer(modules.getModule(Notifications.class));
         Hud hud = new Hud(List.of(new WatermarkRenderer(modules.getModule(Watermark.class), user, skin, tracker),
-                new HotkeysRenderer(modules.getModule(Hotkeys.class), modules)), clickGui, settings,
+                new HotkeysRenderer(modules.getModule(Hotkeys.class), modules), notifications), clickGui, settings,
                 () -> Minecraft.getInstance().gui.screen() instanceof ChatScreen);
 
         Moonlight.EVENT_BUS.register(ROTATIONS);
@@ -64,11 +71,14 @@ public final class MoonlightClient {
         Moonlight.EVENT_BUS.register(configs);
         Moonlight.EVENT_BUS.register(commands);
         Moonlight.EVENT_BUS.register(hud);
+        Moonlight.EVENT_BUS.register(notifications);
         Moonlight.EVENT_BUS.register(tracker);
+        EspRenderer esp = new EspRenderer(modules.getModule(Esp.class));
         Moonlight.EVENT_BUS.register(new ImGuiManager(() -> {
             Minecraft mc = Minecraft.getInstance();
             boolean open = mc.gui.screen() instanceof ClickGuiScreen;
             boolean editing = open || mc.gui.screen() instanceof ChatScreen;
+            if (!mc.gui.hud.isHidden()) esp.frame();
             hud.frame(editing, !mc.gui.hud.isHidden());
             clickGui.frame(open, editing);
         }));
